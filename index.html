@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movie Recommendation Engine</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -271,10 +272,162 @@
             padding: 20px;
             text-align: center;
         }
+
+        /* Auth Styles */
+        .auth-bar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .auth-bar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .auth-bar button {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-modal.show {
+            display: flex;
+        }
+
+        .auth-form {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-form h2 {
+            margin-bottom: 24px;
+            color: #333;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .auth-form .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .auth-form .button-group button {
+            flex: 1;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .auth-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .auth-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .auth-content {
+            display: none;
+        }
+
+        .auth-content.active {
+            display: block;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 20px auto;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Auth Bar -->
+    <div class="auth-bar">
+        <div class="user-info" id="userInfo">
+            <span id="userEmail">Not signed in</span>
+        </div>
+        <div>
+            <button id="authBtn" onclick="showAuthModal()">Sign In</button>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="auth-modal" id="authModal" onclick="hideAuthModal(event)">
+        <div class="auth-form" onclick="event.stopPropagation()">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <div class="auth-content active" id="loginContent">
+                <h2>Welcome Back</h2>
+                <input type="email" id="loginEmail" placeholder="Email">
+                <input type="password" id="loginPassword" placeholder="Password">
+                <div class="button-group">
+                    <button class="secondary" onclick="hideAuthModal()">Cancel</button>
+                    <button onclick="handleLogin()">Login</button>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <div class="auth-content" id="signupContent">
+                <h2>Create Account</h2>
+                <input type="email" id="signupEmail" placeholder="Email">
+                <input type="password" id="signupPassword" placeholder="Password">
+                <input type="password" id="signupConfirmPassword" placeholder="Confirm Password">
+                <div class="button-group">
+                    <button class="secondary" onclick="hideAuthModal()">Cancel</button>
+                    <button onclick="handleSignup()">Sign Up</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container main-container">
         <h1>Movie Recommendation Engine</h1>
         <p class="subtitle">Select your streaming services and preferences to get personalized movie recommendations</p>
 
@@ -318,7 +471,7 @@
                     <input type="number" id="weight3" min="1" max="10" value="4" onchange="savePreferences()">
                 </div>
             </div>
-            <button class="recommend-btn" onclick="generateRecommendations()">Get Movie Recommendations</button>
+            <button class="recommend-btn" id="recommendBtn">Get Movie Recommendations</button>
         </div>
 
         <div id="resultsSection" style="display: none;">
@@ -328,7 +481,15 @@
     </div>
 
     <script>
-        // Movie Database
+        // Initialize Supabase
+        const SUPABASE_URL = 'https://fueegoozgonkstxlxgxk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1ZWVnb296Z29ua3N0eGx4Z3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4OTA3NDUsImV4cCI6MjA3ODQ2Njc0NX0.TRwgmLfon2cvg-fHYhxqLazSVHhAdfZ0iGWA76UF1Mg';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Current user state
+        let currentUser = null;
+
+        // Movie Database - static data with real movie info
         const movieDatabase = [
             { title: "The Shawshank Redemption", year: 1994, rating: 9.3, genre: ["Drama"], runtime: 142, services: ["Netflix", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
             { title: "The Dark Knight", year: 2008, rating: 9.0, genre: ["Action", "Crime", "Drama"], runtime: 152, services: ["HBO Max", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
@@ -444,7 +605,7 @@
         }
 
         // Save preferences
-        function savePreferences() {
+        async function savePreferences() {
             preferences.pref1.category = document.getElementById('pref1').value;
             preferences.pref1.weight = parseInt(document.getElementById('weight1').value) || 8;
             preferences.pref2.category = document.getElementById('pref2').value;
@@ -452,11 +613,38 @@
             preferences.pref3.category = document.getElementById('pref3').value;
             preferences.pref3.weight = parseInt(document.getElementById('weight3').value) || 4;
 
+            // Save to localStorage as backup
             const data = {
                 selectedServices: selectedServices,
                 preferences: preferences
             };
             localStorage.setItem('movieRecommendations', JSON.stringify(data));
+
+            // If logged in, save to Supabase
+            if (currentUser) {
+                try {
+                    const { error } = await supabase
+                        .from('user_preferences')
+                        .upsert({
+                            user_id: currentUser.id,
+                            selected_services: selectedServices,
+                            pref1_category: preferences.pref1.category,
+                            pref1_weight: preferences.pref1.weight,
+                            pref2_category: preferences.pref2.category,
+                            pref2_weight: preferences.pref2.weight,
+                            pref3_category: preferences.pref3.category,
+                            pref3_weight: preferences.pref3.weight,
+                            updated_at: new Date().toISOString()
+                        }, {
+                            onConflict: 'user_id'
+                        });
+
+                    if (error) throw error;
+                    console.log('Preferences saved to database');
+                } catch (error) {
+                    console.error('Error saving to database:', error);
+                }
+            }
         }
 
         // Load preferences
@@ -519,11 +707,17 @@
                 score += prefScore * pref.weight;
             });
 
-            return score;
+            // Normalize score to percentage out of max possible score
+            const maxScore =
+                preferences.pref1.weight * 10 +
+                preferences.pref2.weight * 10 +
+                preferences.pref3.weight * 10;
+
+            return (score / maxScore) * 100;
         }
 
         // Generate recommendations
-        function generateRecommendations() {
+        async function generateRecommendations() {
             if (selectedServices.length === 0) {
                 alert('Please select at least one streaming service!');
                 return;
@@ -535,13 +729,16 @@
                 return;
             }
 
+            // Show loading message
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('movieGrid').innerHTML = '<div class="no-results">Calculating recommendations...</div>';
+
             // Filter movies by selected services
             const availableMovies = movieDatabase.filter(movie =>
                 movie.services.some(service => selectedServices.includes(service))
             );
 
             if (availableMovies.length === 0) {
-                document.getElementById('resultsSection').style.display = 'block';
                 document.getElementById('movieGrid').innerHTML = '<div class="no-results">No movies found for your selected streaming services.</div>';
                 return;
             }
@@ -639,7 +836,183 @@
             }
         }
 
+        // Auth Functions
+        function showAuthModal() {
+            document.getElementById('authModal').classList.add('show');
+        }
+
+        function hideAuthModal(event) {
+            if (!event || event.target.id === 'authModal') {
+                document.getElementById('authModal').classList.remove('show');
+            }
+        }
+
+        function switchAuthTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            const contents = document.querySelectorAll('.auth-content');
+
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                document.getElementById('loginContent').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('signupContent').classList.add('active');
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                alert('Please enter email and password');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                currentUser = data.user;
+                updateAuthUI();
+                hideAuthModal();
+                await loadPreferencesFromDB();
+                alert('Logged in successfully!');
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+                console.error('Login error:', error);
+            }
+        }
+
+        async function handleSignup() {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+
+            if (!email || !password || !confirmPassword) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                alert('Account created! You can now log in.');
+                switchAuthTab('login');
+            } catch (error) {
+                alert('Signup failed: ' + error.message);
+                console.error('Signup error:', error);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+
+                currentUser = null;
+                updateAuthUI();
+                alert('Logged out successfully');
+            } catch (error) {
+                alert('Logout failed: ' + error.message);
+                console.error('Logout error:', error);
+            }
+        }
+
+        function updateAuthUI() {
+            const userEmail = document.getElementById('userEmail');
+            const authBtn = document.getElementById('authBtn');
+
+            if (currentUser) {
+                userEmail.textContent = currentUser.email;
+                authBtn.textContent = 'Logout';
+                authBtn.onclick = handleLogout;
+            } else {
+                userEmail.textContent = 'Not signed in';
+                authBtn.textContent = 'Sign In';
+                authBtn.onclick = showAuthModal;
+            }
+        }
+
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                updateAuthUI();
+                await loadPreferencesFromDB();
+            }
+
+            // Listen for auth changes
+            supabase.auth.onAuthStateChange((event, session) => {
+                currentUser = session?.user || null;
+                updateAuthUI();
+                if (event === 'SIGNED_IN') {
+                    loadPreferencesFromDB();
+                }
+            });
+        }
+
+        // Load preferences from database
+        async function loadPreferencesFromDB() {
+            if (!currentUser) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('user_preferences')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+                    throw error;
+                }
+
+                if (data) {
+                    selectedServices = data.selected_services || [];
+                    preferences = {
+                        pref1: { category: data.pref1_category || '', weight: data.pref1_weight || 8 },
+                        pref2: { category: data.pref2_category || '', weight: data.pref2_weight || 6 },
+                        pref3: { category: data.pref3_category || '', weight: data.pref3_weight || 4 }
+                    };
+                    init();
+                }
+            } catch (error) {
+                console.error('Error loading preferences:', error);
+            }
+        }
+
+        // Attach event listener to recommend button
+        document.getElementById('recommendBtn').addEventListener('click', function() {
+            generateRecommendations().catch(error => {
+                console.error('Error in generateRecommendations:', error);
+                document.getElementById('movieGrid').innerHTML = '<div class="no-results">An error occurred. Check console for details.</div>';
+            });
+        });
+
         // Initialize on load
+        checkAuth();
         init();
     </script>
 </body>
