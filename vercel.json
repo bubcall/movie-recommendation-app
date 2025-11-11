@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/sample-movie-data.json",
+      "dest": "/sample-movie-data.json",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

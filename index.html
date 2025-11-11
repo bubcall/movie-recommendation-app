@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendation Engine</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 32px;
+            padding-bottom: 32px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .streaming-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .streaming-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .streaming-option:hover {
+            background: #f0f0f0;
+        }
+
+        .streaming-option.selected {
+            background: #e8edff;
+            border-color: #667eea;
+        }
+
+        .streaming-option input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .streaming-option label {
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .preference-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+
+        .preference-item select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .preference-item input[type="number"] {
+            width: 80px;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .preference-label {
+            font-weight: 600;
+            min-width: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button.secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        button.secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .recommend-btn {
+            padding: 14px 32px;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .movie-card {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .movie-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .movie-year {
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .movie-rating {
+            display: inline-block;
+            background: #ffd700;
+            color: #333;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .movie-genre {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .movie-runtime {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .movie-services {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .service-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .match-score {
+            margin-top: 12px;
+            padding: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+        }
+
+        .data-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-bottom: 24px;
+        }
+
+        .data-controls button {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .empty-state {
+            color: #999;
+            font-style: italic;
+            font-size: 14px;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Movie Recommendation Engine</h1>
+        <p class="subtitle">Select your streaming services and preferences to get personalized movie recommendations</p>
+
+        <div class="data-controls">
+            <button class="secondary" onclick="exportData()">Export JSON</button>
+            <button class="secondary" onclick="document.getElementById('fileInput').click()">Import JSON</button>
+            <button class="secondary" onclick="resetPreferences()">Reset</button>
+        </div>
+        <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
+
+        <div class="section">
+            <div class="section-title">1. Select Your Streaming Services</div>
+            <div class="streaming-grid" id="streamingGrid"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">2. Choose Your Top 3 Preferences</div>
+            <div id="preferencesContainer">
+                <div class="preference-item">
+                    <span class="preference-label">#1</span>
+                    <select id="pref1" onchange="savePreferences()">
+                        <option value="">Select preference...</option>
+                    </select>
+                    <span>Weight:</span>
+                    <input type="number" id="weight1" min="1" max="10" value="8" onchange="savePreferences()">
+                </div>
+                <div class="preference-item">
+                    <span class="preference-label">#2</span>
+                    <select id="pref2" onchange="savePreferences()">
+                        <option value="">Select preference...</option>
+                    </select>
+                    <span>Weight:</span>
+                    <input type="number" id="weight2" min="1" max="10" value="6" onchange="savePreferences()">
+                </div>
+                <div class="preference-item">
+                    <span class="preference-label">#3</span>
+                    <select id="pref3" onchange="savePreferences()">
+                        <option value="">Select preference...</option>
+                    </select>
+                    <span>Weight:</span>
+                    <input type="number" id="weight3" min="1" max="10" value="4" onchange="savePreferences()">
+                </div>
+            </div>
+            <button class="recommend-btn" onclick="generateRecommendations()">Get Movie Recommendations</button>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="section-title">Recommended Movies</div>
+            <div class="movie-grid" id="movieGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Movie Database
+        const movieDatabase = [
+            { title: "The Shawshank Redemption", year: 1994, rating: 9.3, genre: ["Drama"], runtime: 142, services: ["Netflix", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "The Dark Knight", year: 2008, rating: 9.0, genre: ["Action", "Crime", "Drama"], runtime: 152, services: ["HBO Max", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "Inception", year: 2010, rating: 8.8, genre: ["Action", "Sci-Fi", "Thriller"], runtime: 148, services: ["Netflix", "HBO Max"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "Interstellar", year: 2014, rating: 8.6, genre: ["Adventure", "Drama", "Sci-Fi"], runtime: 169, services: ["Amazon Prime", "Paramount+"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "The Matrix", year: 1999, rating: 8.7, genre: ["Action", "Sci-Fi"], runtime: 136, services: ["HBO Max", "Hulu"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "Goodfellas", year: 1990, rating: 8.7, genre: ["Crime", "Drama"], runtime: 146, services: ["Netflix", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "The Godfather", year: 1972, rating: 9.2, genre: ["Crime", "Drama"], runtime: 175, services: ["Paramount+", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "Pulp Fiction", year: 1994, rating: 8.9, genre: ["Crime", "Drama"], runtime: 154, services: ["Netflix", "Hulu"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "Forrest Gump", year: 1994, rating: 8.8, genre: ["Drama", "Romance"], runtime: 142, services: ["Paramount+", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "The Lion King", year: 1994, rating: 8.5, genre: ["Animation", "Adventure", "Drama"], runtime: 88, services: ["Disney+"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "Toy Story", year: 1995, rating: 8.3, genre: ["Animation", "Adventure", "Comedy"], runtime: 81, services: ["Disney+"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "Finding Nemo", year: 2003, rating: 8.1, genre: ["Animation", "Adventure", "Comedy"], runtime: 100, services: ["Disney+"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "Avengers: Endgame", year: 2019, rating: 8.4, genre: ["Action", "Adventure", "Sci-Fi"], runtime: 181, services: ["Disney+"], recentRelease: true, criticallyAcclaimed: true, actionPacked: true, familyFriendly: true },
+            { title: "Spider-Man: No Way Home", year: 2021, rating: 8.3, genre: ["Action", "Adventure", "Sci-Fi"], runtime: 148, services: ["Disney+"], recentRelease: true, criticallyAcclaimed: true, actionPacked: true, familyFriendly: true },
+            { title: "Top Gun: Maverick", year: 2022, rating: 8.3, genre: ["Action", "Drama"], runtime: 130, services: ["Paramount+"], recentRelease: true, criticallyAcclaimed: true, actionPacked: true, familyFriendly: true },
+            { title: "Everything Everywhere All at Once", year: 2022, rating: 8.0, genre: ["Action", "Adventure", "Comedy"], runtime: 139, services: ["Amazon Prime", "Hulu"], recentRelease: true, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "Oppenheimer", year: 2023, rating: 8.4, genre: ["Biography", "Drama", "History"], runtime: 180, services: ["Amazon Prime"], recentRelease: true, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "Barbie", year: 2023, rating: 7.1, genre: ["Adventure", "Comedy", "Fantasy"], runtime: 114, services: ["HBO Max"], recentRelease: true, criticallyAcclaimed: false, actionPacked: false, familyFriendly: true },
+            { title: "Dune", year: 2021, rating: 8.0, genre: ["Action", "Adventure", "Drama"], runtime: 155, services: ["HBO Max", "Amazon Prime"], recentRelease: true, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "The Batman", year: 2022, rating: 7.8, genre: ["Action", "Crime", "Drama"], runtime: 176, services: ["HBO Max"], recentRelease: true, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "John Wick", year: 2014, rating: 7.4, genre: ["Action", "Crime", "Thriller"], runtime: 101, services: ["Netflix", "Hulu"], recentRelease: false, criticallyAcclaimed: false, actionPacked: true, familyFriendly: false },
+            { title: "Mad Max: Fury Road", year: 2015, rating: 8.1, genre: ["Action", "Adventure", "Sci-Fi"], runtime: 120, services: ["HBO Max", "Hulu"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "Parasite", year: 2019, rating: 8.5, genre: ["Drama", "Thriller"], runtime: 132, services: ["Hulu"], recentRelease: true, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "Get Out", year: 2017, rating: 7.7, genre: ["Horror", "Mystery", "Thriller"], runtime: 104, services: ["Netflix", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "A Quiet Place", year: 2018, rating: 7.5, genre: ["Drama", "Horror", "Sci-Fi"], runtime: 90, services: ["Paramount+"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "Knives Out", year: 2019, rating: 7.9, genre: ["Comedy", "Crime", "Drama"], runtime: 130, services: ["Netflix"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "The Grand Budapest Hotel", year: 2014, rating: 8.1, genre: ["Adventure", "Comedy", "Crime"], runtime: 99, services: ["Hulu", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "Moonlight", year: 2016, rating: 7.4, genre: ["Drama"], runtime: 111, services: ["Netflix"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "1917", year: 2019, rating: 8.3, genre: ["Drama", "War"], runtime: 119, services: ["Amazon Prime", "Hulu"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "La La Land", year: 2016, rating: 8.0, genre: ["Comedy", "Drama", "Music"], runtime: 128, services: ["Netflix", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "Encanto", year: 2021, rating: 7.2, genre: ["Animation", "Comedy", "Family"], runtime: 102, services: ["Disney+"], recentRelease: true, criticallyAcclaimed: false, familyFriendly: true },
+            { title: "Moana", year: 2016, rating: 7.6, genre: ["Animation", "Adventure", "Comedy"], runtime: 107, services: ["Disney+"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "Frozen", year: 2013, rating: 7.4, genre: ["Animation", "Adventure", "Comedy"], runtime: 102, services: ["Disney+"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "The Social Network", year: 2010, rating: 7.8, genre: ["Biography", "Drama"], runtime: 120, services: ["Netflix", "Hulu"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "Whiplash", year: 2014, rating: 8.5, genre: ["Drama", "Music"], runtime: 106, services: ["Netflix", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: false },
+            { title: "Arrival", year: 2016, rating: 7.9, genre: ["Drama", "Sci-Fi"], runtime: 116, services: ["Paramount+", "Hulu"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "Blade Runner 2049", year: 2017, rating: 8.0, genre: ["Action", "Drama", "Sci-Fi"], runtime: 164, services: ["HBO Max", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "The Martian", year: 2015, rating: 8.0, genre: ["Adventure", "Drama", "Sci-Fi"], runtime: 144, services: ["Hulu", "Amazon Prime"], recentRelease: false, criticallyAcclaimed: true, actionPacked: false, familyFriendly: true },
+            { title: "Baby Driver", year: 2017, rating: 7.6, genre: ["Action", "Crime", "Drama"], runtime: 113, services: ["Netflix", "Hulu"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: false },
+            { title: "Guardians of the Galaxy", year: 2014, rating: 8.0, genre: ["Action", "Adventure", "Comedy"], runtime: 121, services: ["Disney+"], recentRelease: false, criticallyAcclaimed: true, actionPacked: true, familyFriendly: true }
+        ];
+
+        const streamingServices = ["Netflix", "Amazon Prime", "Disney+", "HBO Max", "Hulu", "Paramount+", "Apple TV+"];
+
+        const preferenceCategories = [
+            { value: "highRating", label: "High IMDb Rating (8.5+)" },
+            { value: "recentRelease", label: "Recent Release (2019+)" },
+            { value: "shortRuntime", label: "Short Runtime (<120 min)" },
+            { value: "actionPacked", label: "Action-Packed" },
+            { value: "criticallyAcclaimed", label: "Critically Acclaimed" },
+            { value: "familyFriendly", label: "Family Friendly" },
+            { value: "sciFi", label: "Sci-Fi Genre" },
+            { value: "comedy", label: "Comedy Genre" },
+            { value: "drama", label: "Drama Genre" },
+            { value: "animation", label: "Animation Genre" }
+        ];
+
+        let selectedServices = [];
+        let preferences = {
+            pref1: { category: "", weight: 8 },
+            pref2: { category: "", weight: 6 },
+            pref3: { category: "", weight: 4 }
+        };
+
+        // Initialize
+        function init() {
+            loadPreferences();
+            renderStreamingServices();
+            renderPreferenceOptions();
+        }
+
+        // Render streaming services
+        function renderStreamingServices() {
+            const grid = document.getElementById('streamingGrid');
+            grid.innerHTML = streamingServices.map(service => {
+                const selected = selectedServices.includes(service) ? 'selected' : '';
+                const checked = selectedServices.includes(service) ? 'checked' : '';
+                return `
+                    <div class="streaming-option ${selected}" onclick="toggleService('${service}')">
+                        <input type="checkbox" id="service-${service}" ${checked} onchange="event.stopPropagation(); toggleService('${service}')">
+                        <label for="service-${service}">${service}</label>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle streaming service
+        function toggleService(service) {
+            if (selectedServices.includes(service)) {
+                selectedServices = selectedServices.filter(s => s !== service);
+            } else {
+                selectedServices.push(service);
+            }
+            savePreferences();
+            renderStreamingServices();
+        }
+
+        // Render preference options
+        function renderPreferenceOptions() {
+            const selects = ['pref1', 'pref2', 'pref3'];
+            selects.forEach((selectId, index) => {
+                const select = document.getElementById(selectId);
+                const currentValue = preferences[selectId].category;
+                select.innerHTML = '<option value="">Select preference...</option>' +
+                    preferenceCategories.map(cat => {
+                        const selected = cat.value === currentValue ? 'selected' : '';
+                        return `<option value="${cat.value}" ${selected}>${cat.label}</option>`;
+                    }).join('');
+
+                document.getElementById(`weight${index + 1}`).value = preferences[selectId].weight;
+            });
+        }
+
+        // Save preferences
+        function savePreferences() {
+            preferences.pref1.category = document.getElementById('pref1').value;
+            preferences.pref1.weight = parseInt(document.getElementById('weight1').value) || 8;
+            preferences.pref2.category = document.getElementById('pref2').value;
+            preferences.pref2.weight = parseInt(document.getElementById('weight2').value) || 6;
+            preferences.pref3.category = document.getElementById('pref3').value;
+            preferences.pref3.weight = parseInt(document.getElementById('weight3').value) || 4;
+
+            const data = {
+                selectedServices: selectedServices,
+                preferences: preferences
+            };
+            localStorage.setItem('movieRecommendations', JSON.stringify(data));
+        }
+
+        // Load preferences
+        function loadPreferences() {
+            const saved = localStorage.getItem('movieRecommendations');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    selectedServices = data.selectedServices || [];
+                    preferences = data.preferences || preferences;
+                } catch (e) {
+                    console.error('Error loading preferences:', e);
+                }
+            }
+        }
+
+        // Calculate movie score
+        function calculateMovieScore(movie) {
+            let score = 0;
+
+            ['pref1', 'pref2', 'pref3'].forEach(prefKey => {
+                const pref = preferences[prefKey];
+                if (!pref.category) return;
+
+                let prefScore = 0;
+
+                switch(pref.category) {
+                    case 'highRating':
+                        prefScore = movie.rating >= 8.5 ? 10 : Math.max(0, (movie.rating - 7) * 6.67);
+                        break;
+                    case 'recentRelease':
+                        prefScore = movie.recentRelease ? 10 : 0;
+                        break;
+                    case 'shortRuntime':
+                        prefScore = movie.runtime < 120 ? 10 : Math.max(0, 10 - (movie.runtime - 120) / 10);
+                        break;
+                    case 'actionPacked':
+                        prefScore = movie.actionPacked ? 10 : 0;
+                        break;
+                    case 'criticallyAcclaimed':
+                        prefScore = movie.criticallyAcclaimed ? 10 : 0;
+                        break;
+                    case 'familyFriendly':
+                        prefScore = movie.familyFriendly ? 10 : 0;
+                        break;
+                    case 'sciFi':
+                        prefScore = movie.genre.includes('Sci-Fi') ? 10 : 0;
+                        break;
+                    case 'comedy':
+                        prefScore = movie.genre.includes('Comedy') ? 10 : 0;
+                        break;
+                    case 'drama':
+                        prefScore = movie.genre.includes('Drama') ? 10 : 0;
+                        break;
+                    case 'animation':
+                        prefScore = movie.genre.includes('Animation') ? 10 : 0;
+                        break;
+                }
+
+                score += prefScore * pref.weight;
+            });
+
+            return score;
+        }
+
+        // Generate recommendations
+        function generateRecommendations() {
+            if (selectedServices.length === 0) {
+                alert('Please select at least one streaming service!');
+                return;
+            }
+
+            const hasPreferences = preferences.pref1.category || preferences.pref2.category || preferences.pref3.category;
+            if (!hasPreferences) {
+                alert('Please select at least one preference!');
+                return;
+            }
+
+            // Filter movies by selected services
+            const availableMovies = movieDatabase.filter(movie =>
+                movie.services.some(service => selectedServices.includes(service))
+            );
+
+            if (availableMovies.length === 0) {
+                document.getElementById('resultsSection').style.display = 'block';
+                document.getElementById('movieGrid').innerHTML = '<div class="no-results">No movies found for your selected streaming services.</div>';
+                return;
+            }
+
+            // Calculate scores and sort
+            const scoredMovies = availableMovies.map(movie => ({
+                ...movie,
+                matchScore: calculateMovieScore(movie)
+            })).sort((a, b) => b.matchScore - a.matchScore);
+
+            // Display top 12 recommendations
+            const topMovies = scoredMovies.slice(0, 12);
+            renderMovies(topMovies);
+        }
+
+        // Render movies
+        function renderMovies(movies) {
+            const grid = document.getElementById('movieGrid');
+            document.getElementById('resultsSection').style.display = 'block';
+
+            if (movies.length === 0) {
+                grid.innerHTML = '<div class="no-results">No movies match your preferences.</div>';
+                return;
+            }
+
+            grid.innerHTML = movies.map(movie => `
+                <div class="movie-card">
+                    <div class="movie-title">${movie.title}</div>
+                    <div class="movie-year">${movie.year}</div>
+                    <div class="movie-rating">⭐ ${movie.rating}</div>
+                    <div class="movie-genre">${movie.genre.join(', ')}</div>
+                    <div class="movie-runtime">${movie.runtime} min</div>
+                    <div class="movie-services">
+                        ${movie.services.filter(s => selectedServices.includes(s)).map(service =>
+                            `<span class="service-badge">${service}</span>`
+                        ).join('')}
+                    </div>
+                    <div class="match-score">Match: ${movie.matchScore.toFixed(0)}%</div>
+                </div>
+            `).join('');
+
+            // Scroll to results
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Export data
+        function exportData() {
+            const data = {
+                selectedServices: selectedServices,
+                preferences: preferences
+            };
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'movie-preferences.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Import data
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    selectedServices = data.selectedServices || [];
+                    preferences = data.preferences || preferences;
+                    savePreferences();
+                    init();
+                    alert('Preferences imported successfully!');
+                } catch (error) {
+                    alert('Error importing data: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Reset preferences
+        function resetPreferences() {
+            if (confirm('Are you sure you want to reset all preferences?')) {
+                selectedServices = [];
+                preferences = {
+                    pref1: { category: "", weight: 8 },
+                    pref2: { category: "", weight: 6 },
+                    pref3: { category: "", weight: 4 }
+                };
+                savePreferences();
+                init();
+                document.getElementById('resultsSection').style.display = 'none';
+            }
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "movies": [
+    "The Shawshank Redemption",
+    "The Dark Knight",
+    "Inception"
+  ],
+  "criteria": [
+    {
+      "name": "IMDb Rating",
+      "weight": 8
+    },
+    {
+      "name": "Runtime",
+      "weight": 5
+    },
+    {
+      "name": "Mood Match",
+      "weight": 7
+    },
+    {
+      "name": "Rewatchability",
+      "weight": 6
+    }
+  ],
+  "scores": {
+    "The Shawshank Redemption|IMDb Rating": 9.5,
+    "The Shawshank Redemption|Runtime": 7,
+    "The Shawshank Redemption|Mood Match": 8,
+    "The Shawshank Redemption|Rewatchability": 9,
+    "The Dark Knight|IMDb Rating": 9,
+    "The Dark Knight|Runtime": 6,
+    "The Dark Knight|Mood Match": 9,
+    "The Dark Knight|Rewatchability": 8,
+    "Inception|IMDb Rating": 8.5,
+    "Inception|Runtime": 7,
+    "Inception|Mood Match": 7,
+    "Inception|Rewatchability": 7
+  }
+}
